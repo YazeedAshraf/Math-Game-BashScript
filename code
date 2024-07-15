@@ -1,0 +1,204 @@
+#!/bin/bash
+
+function GetQuestionLevel() {
+    read -p "Enter Question Level [1] Easy, [2] Med, [3] Hard, [4] Mix: " Level
+    echo $Level
+}
+
+function GetOpType() {
+    read -p "Enter Operation Type [1] Add, [2] Sub, [3] Mul, [4] Div, [5] Mix: " Operation
+    echo $Operation
+}
+
+function ClearScreen() {
+    clear
+    tput sgr0
+}
+
+function CorrectAnswerScreen() {
+    tput setaf 2
+}
+
+function WrongAnswerScreen() {
+    tput setaf 4
+}
+
+function GetNumberOfQuestion() {
+    read -p "How Many Questions do you want to answer ? " NumOfQuestion
+    echo $NumOfQuestion
+}
+
+function GetPlayerAnswer() {
+    read -p "Enter your answer: " Answer
+    echo $Answer
+}
+
+function RandomNumber() {
+    From=$1
+    To=$2
+    randNum=$((RANDOM % ($To - $From + 1) + $From))
+    echo $randNum
+}
+
+function GenerateNumberDepanedOnLevel() {
+    Level=$1
+    case $Level in
+        1) RandomNumber 1 10;;
+        2) RandomNumber 10 50;;
+        3) RandomNumber 50 100;;
+        4) RandomNumber 1 100;;
+    esac
+}
+
+function ChooseOperationIfMixIsChoosen() {
+    RandomNumber 1 4
+}
+
+function FindCorrectAnswer() {
+    Number1=$1
+    Number2=$2
+    Operation=$3
+    if [[ $Operation != 5 ]]; then
+        case $Operation in
+            1) echo $(($Number1 + $Number2));;
+            2) echo $(($Number1 - $Number2));;
+            3) echo $(($Number1 * $Number2));;
+            4) echo $(($Number1 / $Number2));;
+        esac
+    else
+        NewOperation=$(ChooseOperationIfMixIsChoosen)
+        FindCorrectAnswer $Number1 $Number2 $NewOperation
+    fi
+}
+
+function PrintOperation() {
+    Operation=$1
+    case $Operation in
+        1) echo "+";;
+        2) echo "-";;
+        3) echo "*";;
+        4) echo "/";;
+        *) echo "Mix";;
+    esac
+}
+
+function PrintLevel() {
+    Level=$1
+    case $Level in
+        1) echo "Easy";;
+        2) echo "Med";;
+        3) echo "Hard";;
+        4) echo "Mix";;
+    esac
+}
+
+function PrintTheQuestion() {
+    Number1=$1
+    Number2=$2
+    Operation=$3
+    NumberOfQuestion=$4
+    NumOfQuestion=$5
+    echo -e "\nQuestion [$NumberOfQuestion/$NumOfQuestion]\n"
+    echo $Number1
+    echo -n "$Number2 "
+    echo $(PrintOperation $Operation)
+    echo "_______________"
+}
+
+function CheckIfAnswerIsCorrect() {
+    PlayerAnswer=$1
+    CorrectAnswer=$2
+    [[ $PlayerAnswer -eq $CorrectAnswer ]]
+}
+
+function PrintCorrectAnswer() {
+    CorrectAnswerScreen
+    echo -e "Right Answer :-)\n"
+}
+
+function PrintWrongAnswer() {
+    WrongAnswerScreen
+    echo -e "Wrong Answer :-(\n"
+    echo "The right answer is: $1\n"
+}
+
+function DetermineTheFinalResult() {
+    PlayerCorrect=$1
+    PlayerWrong=$2
+    if [[ $PlayerCorrect -gt $PlayerWrong ]]; then
+        echo "Pass :-)"
+    else
+        echo "Fail :-("
+    fi
+}
+
+function PrintFinalResult() {
+    PlayerCorrect=$1
+    PlayerWrong=$2
+    NumOfQuestion=$3
+    echo -e "\n----------------------------------------"
+    echo -n " Final Result is "
+    DetermineTheFinalResult $PlayerCorrect $PlayerWrong
+    echo "----------------------------------------\n"
+}
+
+function GenerateOneQuestion() {
+    PlayerCorrect=$1
+    PlayerWrong=$2
+    NumOfQuestion=$3
+    Level=$4
+    Operation=$5
+    Number1=$(GenerateNumberDepanedOnLevel $Level)
+    Number2=$(GenerateNumberDepanedOnLevel $Level)
+    CorrectAnswer=$(FindCorrectAnswer $Number1 $Number2 $Operation)
+    PrintTheQuestion $Number1 $Number2 $Operation $NumOfQuestion $NumOfQuestion
+    read -p "Enter your answer: " PlayerAnswer
+    if CheckIfAnswerIsCorrect $PlayerAnswer $CorrectAnswer; then
+        PlayerCorrect=$((PlayerCorrect + 1))
+        PrintCorrectAnswer
+    else
+        PlayerWrong=$((PlayerWrong + 1))
+        PrintWrongAnswer $CorrectAnswer
+    fi
+}
+
+function PrintSummaryResult() {
+    NumOfQuestion=$1
+    Level=$2
+    Operation=$3
+    PlayerCorrect=$4
+    PlayerWrong=$5
+    echo "Number of Questions: $NumOfQuestion"
+    echo "Questions Level: $(PrintLevel $Level)"
+    echo "OpType: $(PrintOperation $Operation)"
+    echo "Number Of Right Answers: $PlayerCorrect"
+    echo "Number Of Wrong Answers: $PlayerWrong"
+    echo "----------------------------------------\n"
+}
+
+function PlayAgain() {
+    read -p "Do you Want to Play Again? Y/N? " Again
+    Loop=$Again
+}
+
+function MathGame() {
+    Loop="y"
+    while [[ $Loop == "y" || $Loop == "Y" ]]; do
+        ClearScreen
+        read -p "Enter seed value: " seed
+        RANDOM=$seed
+        NumOfQuestion=$(GetNumberOfQuestion)
+        Level=$(GetQuestionLevel)
+        Operation=$(GetOpType)
+        PlayerCorrect=0
+        PlayerWrong=0
+        for ((i=1; i<=$NumOfQuestion; i++)); do
+            GenerateOneQuestion $PlayerCorrect $PlayerWrong $NumOfQuestion $Level $Operation
+        done
+        PrintFinalResult $PlayerCorrect $PlayerWrong $NumOfQuestion
+        PrintSummaryResult $NumOfQuestion $Level $Operation $PlayerCorrect $PlayerWrong
+        PlayAgain
+    done
+}
+
+MathGame
